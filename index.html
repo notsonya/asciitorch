@@ -13,13 +13,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      background-color: #ffffff;
-      /* Change background color to white */
+      background-color: #ffffff; /* Change background color to white */
     }
 
-    canvas,
-    video {
+    canvas {
       display: block;
       margin: auto;
       position: absolute;
@@ -27,39 +24,31 @@
       left: 0;
     }
 
-
-    #video-visualizer {
-      width: 100vw;
-      /* Full screen width */
-      height: 100vh;
-      /* Full screen height */
+    #defaultCanvas0 {
+      width: 100vw; /* Full screen width */
+      height: 100vh; /* Full screen height */
     }
-
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
   <script type="module">
     let sketch = function (p) {
       const size = 9;
-      const width = window.innerWidth; // Full screen width
-      const height = window.innerHeight; // Full screen height
-      const cols = width / size;
-      const rows = height / size;
-
+      const cols = window.innerWidth / size;
+      const rows = window.innerHeight / size;
       const symbols = ["𝄪", "𝄞", "♯", "𝄡", "𝄫", "𝄢"];
       let faceapi;
       let detections;
-      // by default all options are set to true
-        const detectionOptions = {
+      const detectionOptions = {
         withLandmarks: true,
         withDescriptors: false,
-        };
+      };
 
       let video;
 
       p.setup = function () {
         p.createCanvas(window.innerWidth, window.innerHeight); // Full screen canvas dimensions
         video = p.createCapture(p.VIDEO);
-        video.size(parseInt(window.innerWidth/4), parseInt(window.innerHeight/4)); // Full screen video size
+        video.size(parseInt(window.innerWidth ), parseInt(window.innerHeight )); // Full screen video size
         video.hide();
         faceapi = ml5.faceApi(video, detectionOptions, modelReady);
       };
@@ -68,86 +57,84 @@
         console.log("ready!");
         console.log(faceapi);
         faceapi.detect(gotResults);
-        }
+      }
 
-    function gotResults(err, result) {
+      function gotResults(err, result) {
         if (err) {
-            console.log(err);
-            return;
+          console.log(err);
+          return;
         }
-        // console.log(result)
+
         detections = result;
-
-        // background(220);
         p.background(255);
-        // image(video, 0, 0, width, height);
-        if (detections) {
-            if (detections.length > 0) {
-            // console.log(detections)
-            drawBox(detections);
-            drawLandmarks(detections);
-            }
+
+        if (detections && detections.length > 0) {
+          drawBox(detections);
+          drawLandmarks(detections);
         }
+
         faceapi.detect(gotResults);
+      }
+
+      function drawBox(detections) {
+        for (let i = 0; i < detections.length; i += 1) {
+          const alignedRect = detections[i].alignedRect;
+          const x = alignedRect._box._x;
+          const y = alignedRect._box._y;
+          const boxWidth = alignedRect._box._width;
+          const boxHeight = alignedRect._box._height;
+
+          p.noFill();
+          p.stroke(161, 95, 251);
+          p.strokeWeight(2);
+          p.rect(x, y, boxWidth, boxHeight);
         }
-        function drawBox(detections) {
-  for (let i = 0; i < detections.length; i += 1) {
-    const alignedRect = detections[i].alignedRect;
-    const x = alignedRect._box._x;
-    const y = alignedRect._box._y;
-    const boxWidth = alignedRect._box._width;
-    const boxHeight = alignedRect._box._height;
+      }
 
-    p.noFill();
-    p.stroke(161, 95, 251);
-    p.strokeWeight(2);
-    p.rect(x, y, boxWidth, boxHeight);
-  }
-}
+      function drawLandmarks(detections) {
+        p.noFill();
+        p.stroke(161, 95, 251);
+        p.strokeWeight(2);
 
-function drawLandmarks(detections) {
-  p.noFill();
-  p.stroke(161, 95, 251);
-  p.strokeWeight(2);
+        for (let i = 0; i < detections.length; i += 1) {
+          const mouth = detections[i].parts.mouth;
+          const nose = detections[i].parts.nose;
+          const leftEye = detections[i].parts.leftEye;
+          const rightEye = detections[i].parts.rightEye;
+          const rightEyeBrow = detections[i].parts.rightEyeBrow;
+          const leftEyeBrow = detections[i].parts.leftEyeBrow;
 
-  for (let i = 0; i < detections.length; i += 1) {
-    const mouth = detections[i].parts.mouth;
-    const nose = detections[i].parts.nose;
-    const leftEye = detections[i].parts.leftEye;
-    const rightEye = detections[i].parts.rightEye;
-    const rightEyeBrow = detections[i].parts.rightEyeBrow;
-    const leftEyeBrow = detections[i].parts.leftEyeBrow;
+          drawPart(mouth, true);
+          drawPart(nose, false);
+          drawPart(leftEye, true);
+          drawPart(leftEyeBrow, false);
+          drawPart(rightEye, true);
+          drawPart(rightEyeBrow, false);
+        }
+      }
 
-    drawPart(mouth, true);
-    drawPart(nose, false);
-    drawPart(leftEye, true);
-    drawPart(leftEyeBrow, false);
-    drawPart(rightEye, true);
-    drawPart(rightEyeBrow, false);
-  }
-}
+      function drawPart(feature, closed) {
+        p.beginShape();
+        for (let i = 0; i < feature.length; i += 1) {
+          const x = feature[i]._x;
+          const y = feature[i]._y;
+          p.vertex(x, y);
+        }
 
-function drawPart(feature, closed) {
-  p.beginShape();
-  for (let i = 0; i < feature.length; i += 1) {
-    const x = feature[i]._x;
-    const y = feature[i]._y;
-    p.vertex(x, y);
-  }
+        if (closed === true) {
+          p.endShape(p.CLOSE);
+        } else {
+          p.endShape();
+        }
+      }
 
-  if (closed === true) {
-    p.endShape(p.CLOSE);
-  } else {
-    p.endShape();
-  }
-}
       p.draw = function () {
         p.background(255, 255, 255);
         video.loadPixels();
 
         for (let i = 0; i < cols; i++) {
           for (let j = 0; j < rows; j++) {
-            let index = (j * size * width + i * size) * 4;
+            let index = (j * size * window.innerWidth + i * size) * 4;
             let r = video.pixels[index];
             let g = video.pixels[index + 1];
             let b = video.pixels[index + 2];
@@ -174,4 +161,6 @@ function drawPart(feature, closed) {
 
 <body>
 </body>
+
 </html>
+
